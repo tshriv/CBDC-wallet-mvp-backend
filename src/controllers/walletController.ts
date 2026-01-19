@@ -40,7 +40,7 @@ export const loadFunds = async (req: AuthRequest, res: Response) => {
         });
         await transaction.save();
 
-        res.json({ message: 'Funds loaded successfully', balance: wallet.balance });
+        res.json({ message: 'Funds loaded successfully', balance: wallet.balance, currency: wallet.currency });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: (error as Error).message });
     }
@@ -69,6 +69,13 @@ export const transferFunds = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Recipient not found' });
         }
 
+        // Prevent self-transfer
+        if (recipientUser._id.toString() === req.user.id) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ message: 'Cannot transfer to yourself' });
+        }
+
         const recipientWallet = await Wallet.findOne({ user: recipientUser._id }).session(session);
         if (!recipientWallet) {
             await session.abortTransaction();
@@ -94,7 +101,7 @@ export const transferFunds = async (req: AuthRequest, res: Response) => {
         await session.commitTransaction();
         session.endSession();
 
-        res.json({ message: 'Transfer successful', balance: senderWallet.balance });
+        res.json({ message: 'Transfer successful', balance: senderWallet.balance, currency: senderWallet.currency });
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
@@ -113,8 +120,14 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
             $or: [{ fromWallet: wallet._id }, { toWallet: wallet._id }],
         })
             .sort({ createdAt: -1 })
-            .populate('fromWallet', 'user')
-            .populate('toWallet', 'user');
+            .populate({
+                path: 'fromWallet',
+                populate: { path: 'user', select: '_id name' }
+            })
+            .populate({
+                path: 'toWallet',
+                populate: { path: 'user', select: '_id name' }
+            });
 
         res.json(transactions);
     } catch (error) {

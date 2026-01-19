@@ -39,7 +39,7 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
     try {
         const { phoneNumber, password } = req.body;
-
+        console.log(phoneNumber, password);
         const user = await User.findOne({ phoneNumber });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
@@ -51,7 +51,7 @@ export const login = async (req: Request, res: Response) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
-            expiresIn: '1h',
+            expiresIn: '24h',
         });
 
         res.json({ token, user: { id: user._id, name: user.name, phoneNumber: user.phoneNumber } });

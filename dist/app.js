@@ -14,6 +14,10 @@ const app = (0, express_1.default)();
 (0, db_1.default)();
 // Init Middleware
 app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
 // Define Routes
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/wallet', walletRoutes_1.default);
